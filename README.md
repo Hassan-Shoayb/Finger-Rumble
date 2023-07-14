@@ -25,6 +25,9 @@ Finger Rumble is an interactive web application that utilizes the power of deep 
 
 9. Finally, once you are happy with your model, click 'Download Model' to save the model to your local disk.
 
+[![Alt Text](https://img.youtube.com/vi/1XueaixJXLA/0.jpg)](https://www.youtube.com/watch?v=1XueaixJXLA)
+
+
 
 # Installation
 To run Finger Rumble locally, follow these steps:
@@ -53,5 +56,3 @@ Finger Rumble is built using the following technologies:
 
 # Contributing
 Contributions to Finger Rumble are welcome and encouraged! If you have any ideas for improvements, new features, or bug fixes, please submit an issue or create a pull request. Make sure to follow the code of conduct when contributing to this project.
-
-[![Alt Text](https://img.youtube.com/vi/1XueaixJXLA/0.jpg)](https://www.youtube.com/watch?v=1XueaixJXLA)
