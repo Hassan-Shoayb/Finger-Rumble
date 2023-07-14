@@ -1,5 +1,4 @@
 # Finger Rumble
-Rock Paper Scissors App
 
 ![Finger-Rumble](https://socialify.git.ci/Hassan-Shoayb/Finger-Rumble/image?description=1&descriptionEditable=Utilizes%20TensorFlow.js%20and%20transfer%20learning%20to%20accurately%20recognize%20and%20classify%20hand%20gestures%20in%20real-time%20using%20your%20webcam.&font=Inter&forks=1&language=1&name=1&owner=1&pattern=Floating%20Cogs&pulls=1&stargazers=1&theme=Light)
 
@@ -35,7 +34,7 @@ To run Finger Rumble locally, follow these steps:
 2. Navigate to the project directory:
    `cd Finger-Rumble`
 
-3. Start the local development server and Open your web browser and visit http://localhost:3000 to play Finger Rumble.
+3. Start the local development server and Open your web browser and visit the port to play Finger Rumble.
 
 That's it! You're now ready to play Finger Rumble on your local machine.
 
