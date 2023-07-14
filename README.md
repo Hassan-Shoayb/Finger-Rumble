@@ -13,9 +13,9 @@ Finger Rumble is an interactive web application that utilizes the power of deep 
 
 3. Place your hand in front of the webcam, making sure it's clearly visible.
 
-4. Then make the gesture for rock while clicking on the rock button to add the rock image samples into memory.
+4. Then make the gesture for rock while clicking on the 'rock' button to add the rock image samples into memory.
 
-5. Collect at least 50 samples rock, and then do thesame for Paper, Scissors, Spock and Lizard.
+5. Collect at least 50 rock samples, and then do thesame for Paper, Scissors, Spock and Lizard.
 
 6. After You've collected your image samples, click on the 'train network' button to train the model of your samples.
 
