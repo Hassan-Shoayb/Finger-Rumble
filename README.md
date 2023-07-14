@@ -29,12 +29,16 @@ Finger Rumble is an interactive web application that utilizes the power of deep 
 # Installation
 To run Finger Rumble locally, follow these steps:
 1. Clone this repository to your local machine using the following command:
-   `https://github.com/Hassan-Shoayb/Finger-Rumble.git`
+```
+https://github.com/Hassan-Shoayb/Finger-Rumble.git
+```
 
-2. Navigate to the project directory:
-   `cd Finger-Rumble`
+3. Navigate to the project directory:
+   ```
+   cd Finger-Rumble
+   ```
 
-3. Start the local development server and Open your web browser and visit the port to play Finger Rumble.
+5. Start the local development server and Open your web browser and visit the port to play Finger Rumble.
 
 That's it! You're now ready to play Finger Rumble on your local machine.
 
