@@ -25,8 +25,7 @@ Finger Rumble is an interactive web application that utilizes the power of deep 
 
 9. Finally, once you are happy with your model, click 'Download Model' to save the model to your local disk.
 
-[![Alt Text](https://img.youtube.com/vi/1XueaixJXLA/0.jpg)](https://www.youtube.com/watch?v=1XueaixJXLA)
-
+<img src="Finger-Rumble.gif" alt="A cool animated GIF">
 
 
 # Installation
