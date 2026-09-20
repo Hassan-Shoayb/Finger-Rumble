@@ -3,7 +3,7 @@
  * Generates dynamic game audio using the Web Audio API without external sound files.
  */
 
-class SoundEffects {
+export class SoundEffects {
   constructor() {
     this.ctx = null;
     this.isMuted = localStorage.getItem('finger_rumble_muted') === 'true';

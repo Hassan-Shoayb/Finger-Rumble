@@ -1,5 +1,6 @@
-# 🖐️⚡ Finger Rumble (v2.0)
+# 🖐️⚡ Finger Rumble (2026 Next-Gen Edition)
 
+[![MediaPipe Tasks Vision](https://img.shields.io/badge/MediaPipe-Tasks_Vision_0.10+-00F2FE?logo=google&logoColor=white)](https://developers.google.com/mediapipe/solutions/vision/hand_landmarker)
 [![TensorFlow.js](https://img.shields.io/badge/TensorFlow.js-4.20.0-FF6F00?logo=tensorflow&logoColor=white)](https://js.tensorflow.org/)
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3.3-7952B3?logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
 [![Live Demo](https://img.shields.io/badge/Live_Demo-Netlify-00C7B7?logo=netlify&logoColor=white)](https://finger-rumble.netlify.app/)
@@ -7,21 +8,24 @@
 
 🌐 **Live Demo / Deployment**: [https://finger-rumble.netlify.app/](https://finger-rumble.netlify.app/)
 
-**Finger Rumble** is a real-time, browser-based hand gesture combat game powered by **TensorFlow.js** and **Transfer Learning**. Train a neural network directly on your webcam feed and face off against the Computer AI in **Rock, Paper, Scissors, Lizard, Spock**!
+**Finger Rumble** is a state-of-the-art hand gesture combat game powered by **Google MediaPipe Tasks Vision (`HandLandmarker`)**, **3D skeletal tracking**, and **TensorFlow.js**. Play the classic extended game of **Rock, Paper, Scissors, Lizard, Spock** against the Computer AI directly in your web browser!
 
-Everything runs **100% client-side** in your browser using hardware-accelerated WebGL—no server, external Python environment, or data collection backend required.
+Everything runs **100% client-side** using WebAssembly SIMD and GPU hardware acceleration.
 
 ---
 
-## 🚀 Key Features
+## 🚀 2026 Next-Gen Features
 
-- 🧠 **In-Browser Transfer Learning**: Uses a pre-trained **MobileNet v1** convolutional feature extractor truncated at layer `conv_pw_13_relu` and attaches a custom trainable classification head.
-- ⚔️ **Interactive Battle Arena**: Face off against the Computer AI in real time! Includes 3-2-1 audio/visual countdowns, automated winner resolution, streak counters, and match modes (*Endless*, *Best of 3*, *Best of 5*).
-- 📊 **Real-Time Confidence Meters**: View multi-class probability distributions across all 5 gestures simultaneously in the live detector tab.
-- ⏱️ **Hold-to-Sample Recording**: Click or hold down gesture buttons for continuous multi-frame sampling.
-- 🔊 **Zero-Dependency Web Audio Effects**: Dynamic countdown ticks, victory fanfares, and audio feedback synthesized via the HTML5 Web Audio API with a one-click mute toggle.
-- 💾 **Model Persistence**: Save and restore your trained models instantly using browser `IndexedDB`, or export model topology and weights (`model.json` + binary weights) to disk.
-- 🎨 **Modern Dark Theme**: Sleek, glassmorphic UI with hand-positioning reticles, real-time status badges, and responsive layout.
+- 🖐️ **21 3D Skeletal Landmark Tracking**: Powered by Google MediaPipe Tasks Vision. Tracks 21 distinct joints per hand at 60 FPS, fully invariant to background noise, lighting shifts, and skin tone.
+- 🪟 **Holographic HUD Canvas Overlay**: Displays real-time glowing neon joints and bone connectors directly over your live camera feed.
+- ⚡ **Zero-Shot Instant Playability**: No need to spend 5 minutes collecting 150 training samples before playing! The 3D geometric engine recognizes Rock, Paper, Scissors, Lizard, and Spock out of the box.
+- 🧠 **Dual-Engine Recognition**:
+  - **Engine A (3D Geometric Heuristics)**: Calculates finger extension ratios, MCP-to-tip distances, and the Vulcan salute split in real time.
+  - **Engine B (Landmark Neural Network)**: Calibrate personalized hand gestures and train a compact 63-coordinate MLP ($63 \to 32 \to 5$) in **under 1 second**!
+- ⚔️ **Interactive Battle Arena**: Face off against the Computer AI with 3-2-1 animated countdowns, dynamic round narratives, streak tracking, and match modes (*Endless*, *Best of 3*, *Best of 5*).
+- 📊 **Real-Time Probability Breakdown**: Live confidence meters show real-time model certainty across all 5 gestures simultaneously.
+- 🔊 **Zero-Dependency Web Audio Effects**: Synthesized countdown beeps, capture pulses, and victory fanfares generated via the Web Audio API with a persistent mute toggle.
+- 💾 **Model Persistence**: Automatically caches custom calibrated landmark models in browser `IndexedDB`.
 
 ---
 
@@ -40,49 +44,47 @@ Created by Sam Kass and Karen Bryla, and popularized on *The Big Bang Theory*:
 ## 🎮 How to Play
 
 1. **Allow Camera Access**: When prompted by your browser, grant webcam access.
-2. **Collect Gesture Samples** (*Tab 1: Train & Calibrate*):
-   - Position your hand inside the webcam targeting guide.
-   - Form the hand gesture for **Rock** (🪨) and hold the sample button until you reach at least 30 samples.
-   - Repeat for **Paper** (📄), **Scissors** (✂️), **Spock** (🖖), and **Lizard** (🦎).
-3. **Train the Network**:
-   - Click **Train Network**. The app will train for 10 epochs with real-time loss and accuracy indicators.
-4. **Test in the Live Detector** (*Tab 2: Live Detector*):
-   - Click **Start Predicting** to test the model's confidence and responsiveness in real time.
-5. **Fight in the Battle Arena** (*Tab 3: Battle Arena*):
+2. **Instant Play (*Tab 1: Battle Arena*)**:
+   - The game is ready **immediately**!
    - Select your mode (*Endless*, *Best of 3*, or *Best of 5*).
-   - Click **FIGHT!** (or hit the `Spacebar`).
-   - Hold your gesture steady during the 3-2-1 countdown, throw your hand on "SHOOT!", and see who wins!
+   - Click **FIGHT!** (or press the `Spacebar`).
+   - Pose your hand in front of the camera during the 3-2-1 countdown and throw your move on "SHOOT!".
+3. **Inspect Live Tracking (*Tab 2: Live Detector & HUD*)**:
+   - View real-time probability distributions across all 5 gestures and watch the holographic skeleton track your hand movements.
+4. **Calibrate Custom Models (*Tab 3: Custom Calibration*)**:
+   - Optional: Collect custom landmark positions for your hand and train a dedicated neural network in $<1$ second.
 
 ---
 
 ## 🛠️ Architecture & Tech Stack
 
 ```
-Webcam Frame (224x224x3)
+Webcam Stream (640x480)
        │
        ▼
-[Webcam.capture()] ── Mirroring, center-cropping, and [-1, 1] normalization
+[MediaPipe Tasks Vision: HandLandmarker] (WASM + GPU delegate)
+       │
+       ├──► 21 3D Landmarks ──► [Holographic Canvas Overlay HUD]
        │
        ▼
-[MobileNet v1 (conv_pw_13_relu)] ── Pre-trained feature extractor
+[Normalized 63-Coordinate Vector] (Wrist-anchored & scale-invariant)
        │
-       ▼ (Feature Embedding)
-[Custom Sequential Classifier] ── Flatten → Dense(100, ReLU) → Dropout(0.2) → Dense(5, Softmax)
+       ├─► [Engine A: 3D Geometric Classifier] ──► Instant Zero-Shot Detection
        │
-       ▼
-Predictions & Probabilities: [Rock, Paper, Scissors, Spock, Lizard]
+       └─► [Engine B: Landmark Neural MLP] ──► Custom Calibrated Prediction
 ```
 
-- **Frontend**: HTML5, CSS3, JavaScript (ES6+), Bootstrap 5.3, Bootstrap Icons
-- **Machine Learning**: [TensorFlow.js](https://js.tensorflow.org/) (WebGL backend), `@tensorflow/tfjs-vis`
-- **Audio Engine**: Web Audio API Synthesizer (built-in, zero external media dependencies)
-- **Persistence**: IndexedDB + File Downloads
+- **Vision Framework**: [Google MediaPipe Tasks Vision (`HandLandmarker`)](https://developers.google.com/mediapipe/solutions/vision/hand_landmarker)
+- **Machine Learning**: [TensorFlow.js](https://js.tensorflow.org/) (WebGL / CPU backend for coordinate MLP)
+- **Frontend Architecture**: Modern ES Modules (`type="module"`), Bootstrap 5.3, Bootstrap Icons, HTML5 Canvas
+- **Audio Engine**: Synthesized HTML5 Web Audio API
+- **Persistence**: Browser `IndexedDB`
 
 ---
 
-## 💻 Local Development & Setup
+## 💻 Local Setup & Development
 
-Since modern web browsers restrict webcam access and cross-origin resource sharing on the `file://` protocol, run the project with any local HTTP server:
+Modern browsers require a local HTTP server for webcam access (`getUserMedia`):
 
 ```bash
 # 1. Clone the repository
@@ -97,7 +99,7 @@ python3 -m http.server 8000
 npx serve .
 ```
 
-Open your browser at `http://localhost:8000`.
+Open `http://localhost:8000` in your web browser.
 
 ---
 

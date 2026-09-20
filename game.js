@@ -3,7 +3,7 @@
  * Implements the official rules for Rock, Paper, Scissors, Lizard, Spock.
  */
 
-const GESTURES = [
+export const GESTURES = [
   {
     id: 0,
     name: 'Rock',
@@ -61,7 +61,7 @@ const GESTURES = [
   }
 ];
 
-class BattleEngine {
+export class BattleEngine {
   constructor() {
     this.playerScore = 0;
     this.cpuScore = 0;
