@@ -1,48 +1,687 @@
-<html>
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
 <head>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">    
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"> </script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"> </script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis"></script>
-<script src="webcam.js"></script>
-<script src="rps-dataset.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finger Rumble | Hand Gesture Combat</title>
+  <meta name="description" content="Real-time Rock-Paper-Scissors-Lizard-Spock classifier & battle arena powered by TensorFlow.js and Transfer Learning.">
+  
+  <!-- Bootstrap 5 & Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <!-- TensorFlow.js & Vis -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis@1.5.1/dist/tfjs-vis.umd.min.js"></script>
+  
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --card-bg: rgba(22, 30, 46, 0.85);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent-glow: rgba(99, 102, 241, 0.25);
+      --rock-color: #ef4444;
+      --paper-color: #3b82f6;
+      --scissors-color: #eab308;
+      --spock-color: #a855f7;
+      --lizard-color: #10b981;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.08) 0px, transparent 50%);
+      color: #f1f5f9;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+    }
+
+    .navbar-glass {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    /* Video feed container */
+    .video-viewport {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      margin: 0 auto;
+      border-radius: 18px;
+      overflow: hidden;
+      background: #020617;
+      box-shadow: 0 0 30px rgba(99, 102, 241, 0.2);
+      border: 2px solid rgba(99, 102, 241, 0.4);
+    }
+
+    #wc {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* Mirror view in UI */
+      display: block;
+    }
+
+    .video-overlay-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      border: 2px dashed rgba(255, 255, 255, 0.25);
+      border-radius: 16px;
+      margin: 16px;
+    }
+
+    .video-status-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 10;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+    }
+    .status-dot.active {
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+
+    /* Gesture cards */
+    .gesture-card {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 12px;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .gesture-card:hover {
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-2px);
+    }
+
+    .gesture-icon {
+      font-size: 2.2rem;
+      line-height: 1;
+    }
+
+    .btn-sample {
+      position: relative;
+      font-weight: 600;
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    .btn-sample:active, .btn-sample.sampling-active {
+      transform: scale(0.96);
+      filter: brightness(1.2);
+    }
+
+    /* Navigation tabs */
+    .nav-pills .nav-link {
+      color: #94a3b8;
+      border-radius: 12px;
+      padding: 10px 20px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .nav-pills .nav-link.active {
+      background: #4f46e5;
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+    }
+
+    /* Probability bars */
+    .prob-bar-container {
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 8px;
+      height: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .prob-bar-fill {
+      height: 100%;
+      border-radius: 8px;
+      transition: width 0.15s ease;
+    }
+
+    /* Battle arena */
+    .arena-box {
+      min-height: 180px;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--card-border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    .arena-avatar {
+      font-size: 4.5rem;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .arena-countdown {
+      font-size: 3.5rem;
+      font-weight: 800;
+      color: #fbbf24;
+      text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+      animation: pulse 0.8s infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.15); }
+    }
+
+    /* Toast styling */
+    .toast-container {
+      z-index: 1090;
+    }
+
+    .toast {
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--card-border);
+      color: #fff;
+    }
+  </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg bg-body-tertiary">
-        <div class="container-md">
-          <a class="navbar-brand" href="#">Hand Gesture Combat</a>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-glass sticky-top mb-4">
+    <div class="container-lg">
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-white" href="#">
+        <span class="fs-4">🖐️⚡</span>
+        <span class="bg-gradient text-white">FINGER RUMBLE</span>
+        <span class="badge text-bg-indigo bg-indigo text-white ms-2" style="background-color: #6366f1; font-size: 0.7rem;">v2.0</span>
+      </a>
+
+      <div class="d-flex align-items-center gap-2">
+        <!-- Sound toggle -->
+        <button id="btnToggleSound" class="btn btn-sm btn-outline-secondary rounded-pill px-3" title="Toggle Sound">
+          <i id="soundIcon" class="bi bi-volume-up-fill"></i>
+        </button>
+
+        <!-- Rules Button -->
+        <button class="btn btn-sm btn-outline-info rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#rulesModal">
+          <i class="bi bi-question-circle me-1"></i> Rules
+        </button>
+
+        <!-- GitHub / Project Link -->
+        <a href="https://github.com/Hassan-Shoayb/Finger-Rumble" target="_blank" class="btn btn-sm btn-outline-light rounded-pill px-3">
+          <i class="bi bi-github"></i>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="container-lg pb-5">
+    <div class="row g-4">
+      
+      <!-- Left Column: Camera Feed & System Status -->
+      <div class="col-lg-4">
+        <div class="glass-card p-4 text-center">
+          <h5 class="fw-bold mb-3 d-flex align-items-center justify-content-center gap-2">
+            <i class="bi bi-camera-video text-primary"></i> Live Camera Feed
+          </h5>
+
+          <!-- Video Viewport -->
+          <div class="video-viewport mb-3">
+            <video autoplay playsinline muted id="wc" width="224" height="224"></video>
+            <div class="video-overlay-grid"></div>
+            <div class="video-status-badge">
+              <span id="cameraStatusDot" class="status-dot"></span>
+              <span id="cameraStatusText">Connecting...</span>
+            </div>
+          </div>
+
+          <p class="text-secondary small mb-3">
+            Position your hand inside the guide square with clear lighting and a plain background.
+          </p>
+
+          <!-- Current Active Detection Overlay -->
+          <div class="p-3 rounded-3 bg-dark border border-secondary border-opacity-25">
+            <div class="text-uppercase small text-secondary fw-semibold">Live Gesture Prediction</div>
+            <div id="liveDetectionDisplay" class="fs-4 fw-bold text-white mt-1">
+              <span class="text-muted fst-italic">Waiting for model...</span>
+            </div>
+            <div id="liveConfidenceDisplay" class="small text-info fw-semibold mt-1">--</div>
+          </div>
+
+          <!-- Camera Troubleshooting alert (hidden by default) -->
+          <div id="cameraErrorAlert" class="alert alert-danger mt-3 text-start small d-none" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+            <span id="cameraErrorMessage">Camera error</span>
+          </div>
         </div>
-      </nav>
 
-	<div>
-		<div class="container-md p-2">
-			<video autoplay playsinline muted id="wc" width="224" height="224"></video>
-		</div>
-	</div>
+        <!-- Quick Model Storage Card -->
+        <div class="glass-card p-3 mt-3 text-center">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="small text-secondary fw-semibold">Model Persistence</span>
+            <div class="btn-group btn-group-sm">
+              <button id="btnSaveBrowser" class="btn btn-outline-primary" title="Save model to browser IndexedDB">
+                <i class="bi bi-cloud-arrow-up me-1"></i> Save Local
+              </button>
+              <button id="btnDownloadModel" class="btn btn-outline-secondary" title="Download model files to disk">
+                <i class="bi bi-download me-1"></i> Export
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <div class="container-md">
-    <button type="button" class="btn btn-primary" id="0" onclick="handleButton(this)" >Rock</button>
-	<button type="button" class="btn btn-primary" id="1" onclick="handleButton(this)" >Paper</button>
-	<button type="button" class="btn btn-primary" id="2" onclick="handleButton(this)" >Scissors</button>
-	<button type="button" class="btn btn-primary" id="3" onclick="handleButton(this)" >Spock</button>
-	<button type="button" class="btn btn-primary" id="4" onclick="handleButton(this)" >Lizard</button>
+      <!-- Right Column: Interactive Tabs (Train, Detector, Battle) -->
+      <div class="col-lg-8">
+        <div class="glass-card p-4">
+          
+          <!-- Navigation Pills -->
+          <ul class="nav nav-pills nav-fill mb-4 p-1 bg-dark bg-opacity-50 rounded-3 border border-secondary border-opacity-25" id="mainTab" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active d-flex align-items-center justify-content-center gap-2" id="train-tab" data-bs-toggle="pill" data-bs-target="#train-pane" type="button" role="tab">
+                <i class="bi bi-mortarboard-fill"></i> 1. Train & Calibrate
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link d-flex align-items-center justify-content-center gap-2" id="detector-tab" data-bs-toggle="pill" data-bs-target="#detector-pane" type="button" role="tab">
+                <i class="bi bi-activity"></i> 2. Live Detector
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link d-flex align-items-center justify-content-center gap-2" id="battle-tab" data-bs-toggle="pill" data-bs-target="#battle-pane" type="button" role="tab">
+                <i class="bi bi-controller"></i> 3. Battle Arena
+              </button>
+            </li>
+          </ul>
 
-    <div id="rocksamples" class="h6 pt-2">Rock Samples:</div>
-	<div id="papersamples" class="h6 pb-1">Paper Samples:</div>
-	<div id="scissorssamples" class="h6 pb-1">Scissors Samples:</div>
-	<div id="spocksamples" class="h6 pb-1">Spock Samples:</div>
-	<div id="lizardsamples" class="h6 pb-1">Lizard Samples:</div>
-	
-    
-    <button type="button" class="btn btn-warning" id="train" onclick="doTraining()" >Train Network</button>
-	<div id="dummy" class="h6">Once training is complete, click 'Start Predicting' to see predictions, and 'Stop Predicting' to end. <br> Once you are happy with your model, click 'Download Model' to save the model to your local disk.</div>
-	<button type="button" class="btn btn-success" id="startPredicting" onclick="startPredicting()" >Start Predicting</button>
-	<button type="button" class="btn btn-danger" id="stopPredicting" onclick="stopPredicting()" >Stop Predicting</button>
-    <button type="button" class="btn btn-secondary" id="saveModel" onclick="saveModel()" >Download Model</button>
-	<div id="prediction" class="h5"></div>
+          <!-- Tab Contents -->
+          <div class="tab-content" id="mainTabContent">
+            
+            <!-- TAB 1: TRAIN & CALIBRATE -->
+            <div class="tab-pane fade show active" id="train-pane" role="tabpanel">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <h5 class="fw-bold mb-0">Collect Gesture Samples</h5>
+                  <small class="text-secondary">Capture at least 30 samples for each gesture. Tap or hold down the button!</small>
+                </div>
+                <button id="btnClearSamples" class="btn btn-sm btn-outline-danger" title="Clear all collected samples">
+                  <i class="bi bi-trash3 me-1"></i> Reset Samples
+                </button>
+              </div>
+
+              <!-- 5 Gesture Cards Grid -->
+              <div class="row g-3 mb-4">
+                <!-- Rock -->
+                <div class="col-md-4 col-sm-6">
+                  <div class="gesture-card text-center h-100" style="border-top: 3px solid var(--rock-color);">
+                    <div class="gesture-icon mb-1">🪨</div>
+                    <div class="fw-bold fs-6 text-white">Rock</div>
+                    <div class="text-secondary small mb-2"><span id="count-0" class="fw-bold text-white">0</span> / 30 samples</div>
+                    <div class="progress mb-3" style="height: 6px;">
+                      <div id="progress-0" class="progress-bar bg-danger" style="width: 0%"></div>
+                    </div>
+                    <button class="btn btn-sm btn-danger btn-sample w-100 py-2" id="btnSample-0" data-id="0">
+                      <i class="bi bi-camera-fill me-1"></i> Hold to Sample
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Paper -->
+                <div class="col-md-4 col-sm-6">
+                  <div class="gesture-card text-center h-100" style="border-top: 3px solid var(--paper-color);">
+                    <div class="gesture-icon mb-1">📄</div>
+                    <div class="fw-bold fs-6 text-white">Paper</div>
+                    <div class="text-secondary small mb-2"><span id="count-1" class="fw-bold text-white">0</span> / 30 samples</div>
+                    <div class="progress mb-3" style="height: 6px;">
+                      <div id="progress-1" class="progress-bar bg-primary" style="width: 0%"></div>
+                    </div>
+                    <button class="btn btn-sm btn-primary btn-sample w-100 py-2" id="btnSample-1" data-id="1">
+                      <i class="bi bi-camera-fill me-1"></i> Hold to Sample
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Scissors -->
+                <div class="col-md-4 col-sm-6">
+                  <div class="gesture-card text-center h-100" style="border-top: 3px solid var(--scissors-color);">
+                    <div class="gesture-icon mb-1">✂️</div>
+                    <div class="fw-bold fs-6 text-white">Scissors</div>
+                    <div class="text-secondary small mb-2"><span id="count-2" class="fw-bold text-white">0</span> / 30 samples</div>
+                    <div class="progress mb-3" style="height: 6px;">
+                      <div id="progress-2" class="progress-bar bg-warning" style="width: 0%"></div>
+                    </div>
+                    <button class="btn btn-sm btn-warning text-dark btn-sample w-100 py-2" id="btnSample-2" data-id="2">
+                      <i class="bi bi-camera-fill me-1"></i> Hold to Sample
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Spock -->
+                <div class="col-md-6 col-sm-6">
+                  <div class="gesture-card text-center h-100" style="border-top: 3px solid var(--spock-color);">
+                    <div class="gesture-icon mb-1">🖖</div>
+                    <div class="fw-bold fs-6 text-white">Spock</div>
+                    <div class="text-secondary small mb-2"><span id="count-3" class="fw-bold text-white">0</span> / 30 samples</div>
+                    <div class="progress mb-3" style="height: 6px;">
+                      <div id="progress-3" class="progress-bar" style="background-color: var(--spock-color); width: 0%"></div>
+                    </div>
+                    <button class="btn btn-sm text-white btn-sample w-100 py-2" style="background-color: #8b5cf6;" id="btnSample-3" data-id="3">
+                      <i class="bi bi-camera-fill me-1"></i> Hold to Sample
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Lizard -->
+                <div class="col-md-6 col-sm-12">
+                  <div class="gesture-card text-center h-100" style="border-top: 3px solid var(--lizard-color);">
+                    <div class="gesture-icon mb-1">🦎</div>
+                    <div class="fw-bold fs-6 text-white">Lizard</div>
+                    <div class="text-secondary small mb-2"><span id="count-4" class="fw-bold text-white">0</span> / 30 samples</div>
+                    <div class="progress mb-3" style="height: 6px;">
+                      <div id="progress-4" class="progress-bar bg-success" style="width: 0%"></div>
+                    </div>
+                    <button class="btn btn-sm btn-success btn-sample w-100 py-2" id="btnSample-4" data-id="4">
+                      <i class="bi bi-camera-fill me-1"></i> Hold to Sample
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Training Control Box -->
+              <div class="p-3 rounded-3 bg-dark border border-secondary border-opacity-25">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                  <div>
+                    <h6 class="fw-bold mb-1">Train Transfer Learning Model</h6>
+                    <span id="trainingStatusText" class="text-secondary small">Collect samples above and click Train.</span>
+                  </div>
+
+                  <div class="d-flex gap-2">
+                    <button id="btnToggleVis" class="btn btn-sm btn-outline-secondary" title="Show/Hide tfjs-vis Training Dashboard">
+                      <i class="bi bi-graph-up me-1"></i> Metrics Chart
+                    </button>
+                    <button id="btnTrain" class="btn btn-success px-4 fw-bold">
+                      <i class="bi bi-lightning-charge-fill me-1"></i> Train Network
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Training Progress Bar -->
+                <div id="trainingProgressWrapper" class="mt-3 d-none">
+                  <div class="d-flex justify-content-between small text-secondary mb-1">
+                    <span id="epochStatus">Epoch 0 / 10</span>
+                    <span id="lossStatus">Loss: --</span>
+                  </div>
+                  <div class="progress" style="height: 10px;">
+                    <div id="trainingProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 2: LIVE DETECTOR -->
+            <div class="tab-pane fade" id="detector-pane" role="tabpanel">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <h5 class="fw-bold mb-0">Real-Time Gesture Classifier</h5>
+                  <small class="text-secondary">Continuously tests your hand in front of the camera.</small>
+                </div>
+                <div>
+                  <button id="btnTogglePredict" class="btn btn-primary fw-semibold px-3">
+                    <i class="bi bi-play-circle-fill me-1"></i> Start Predicting
+                  </button>
+                </div>
+              </div>
+
+              <!-- Multi-class confidence bars -->
+              <div class="p-4 rounded-3 bg-dark border border-secondary border-opacity-25 mb-3">
+                <h6 class="text-secondary text-uppercase small fw-bold mb-3">Confidence Breakdown</h6>
+                
+                <div class="d-flex flex-column gap-3">
+                  <!-- Rock -->
+                  <div>
+                    <div class="d-flex justify-content-between small fw-semibold mb-1">
+                      <span>🪨 Rock</span>
+                      <span id="prob-val-0">0%</span>
+                    </div>
+                    <div class="prob-bar-container">
+                      <div id="prob-bar-0" class="prob-bar-fill bg-danger" style="width: 0%"></div>
+                    </div>
+                  </div>
+
+                  <!-- Paper -->
+                  <div>
+                    <div class="d-flex justify-content-between small fw-semibold mb-1">
+                      <span>📄 Paper</span>
+                      <span id="prob-val-1">0%</span>
+                    </div>
+                    <div class="prob-bar-container">
+                      <div id="prob-bar-1" class="prob-bar-fill bg-primary" style="width: 0%"></div>
+                    </div>
+                  </div>
+
+                  <!-- Scissors -->
+                  <div>
+                    <div class="d-flex justify-content-between small fw-semibold mb-1">
+                      <span>✂️ Scissors</span>
+                      <span id="prob-val-2">0%</span>
+                    </div>
+                    <div class="prob-bar-container">
+                      <div id="prob-bar-2" class="prob-bar-fill bg-warning" style="width: 0%"></div>
+                    </div>
+                  </div>
+
+                  <!-- Spock -->
+                  <div>
+                    <div class="d-flex justify-content-between small fw-semibold mb-1">
+                      <span>🖖 Spock</span>
+                      <span id="prob-val-3">0%</span>
+                    </div>
+                    <div class="prob-bar-container">
+                      <div id="prob-bar-3" class="prob-bar-fill" style="background-color: var(--spock-color); width: 0%"></div>
+                    </div>
+                  </div>
+
+                  <!-- Lizard -->
+                  <div>
+                    <div class="d-flex justify-content-between small fw-semibold mb-1">
+                      <span>🦎 Lizard</span>
+                      <span id="prob-val-4">0%</span>
+                    </div>
+                    <div class="prob-bar-container">
+                      <div id="prob-bar-4" class="prob-bar-fill bg-success" style="width: 0%"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 3: BATTLE ARENA -->
+            <div class="tab-pane fade" id="battle-pane" role="tabpanel">
+              <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                <div>
+                  <h5 class="fw-bold mb-0">Finger Rumble Arena</h5>
+                  <small class="text-secondary">Face off against the Computer AI with real gestures!</small>
+                </div>
+                
+                <!-- Match Mode Selector -->
+                <div class="btn-group btn-group-sm" role="group">
+                  <input type="radio" class="btn-check" name="matchMode" id="modeEndless" autocomplete="off" checked>
+                  <label class="btn btn-outline-secondary" for="modeEndless">Endless</label>
+
+                  <input type="radio" class="btn-check" name="matchMode" id="modeBo3" autocomplete="off">
+                  <label class="btn btn-outline-secondary" for="modeBo3">Best of 3</label>
+
+                  <input type="radio" class="btn-check" name="matchMode" id="modeBo5" autocomplete="off">
+                  <label class="btn btn-outline-secondary" for="modeBo5">Best of 5</label>
+                </div>
+              </div>
+
+              <!-- Scoreboard -->
+              <div class="row g-2 mb-3 text-center">
+                <div class="col-4">
+                  <div class="p-2 rounded bg-dark border border-secondary border-opacity-25">
+                    <div class="small text-secondary fw-bold">YOU</div>
+                    <div id="playerScoreDisplay" class="fs-3 fw-bolder text-info">0</div>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="p-2 rounded bg-dark border border-secondary border-opacity-25">
+                    <div class="small text-secondary fw-bold">STREAK / BEST</div>
+                    <div class="fs-4 fw-bolder text-warning">
+                      <span id="currentStreakDisplay">0</span> / <span id="bestStreakDisplay">0</span> 🔥
+                    </div>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="p-2 rounded bg-dark border border-secondary border-opacity-25">
+                    <div class="small text-secondary fw-bold">CPU</div>
+                    <div id="cpuScoreDisplay" class="fs-3 fw-bolder text-danger">0</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Face-Off Visual Arena -->
+              <div class="row g-3 mb-3">
+                <!-- Player Box -->
+                <div class="col-6">
+                  <div id="playerArenaBox" class="arena-box p-3">
+                    <div class="small text-secondary text-uppercase fw-semibold mb-2">Your Gesture</div>
+                    <div id="playerGestureIcon" class="arena-avatar">❓</div>
+                    <div id="playerGestureName" class="fw-bold mt-2 text-white">Ready</div>
+                  </div>
+                </div>
+
+                <!-- CPU Box -->
+                <div class="col-6">
+                  <div id="cpuArenaBox" class="arena-box p-3">
+                    <div class="small text-secondary text-uppercase fw-semibold mb-2">CPU Move</div>
+                    <div id="cpuGestureIcon" class="arena-avatar">🤖</div>
+                    <div id="cpuGestureName" class="fw-bold mt-2 text-white">Thinking...</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Battle Action / Countdown Display -->
+              <div class="p-3 rounded-3 bg-dark border border-secondary border-opacity-25 text-center">
+                <div id="countdownBox" class="d-none mb-2">
+                  <div id="countdownNumber" class="arena-countdown">3</div>
+                  <div class="text-secondary small">Show your gesture to the camera!</div>
+                </div>
+
+                <div id="battleResultNarrative" class="fs-5 fw-bold text-light mb-3">
+                  Click "FIGHT!" to begin a round!
+                </div>
+
+                <div class="d-flex justify-content-center gap-3">
+                  <button id="btnFight" class="btn btn-lg btn-warning px-5 fw-bolder shadow">
+                    <i class="bi bi-shield-shaded me-1"></i> FIGHT!
+                  </button>
+                  <button id="btnResetMatch" class="btn btn-outline-secondary" title="Reset match scores">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset Score
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      </div>
 
     </div>
-	</body>
+  </div>
 
-<script src="index.js"></script>
+  <!-- Rules Modal -->
+  <div class="modal fade" id="rulesModal" tabindex="-1" aria-labelledby="rulesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content glass-card border-secondary">
+        <div class="modal-header border-secondary border-opacity-25">
+          <h5 class="modal-title fw-bold" id="rulesModalLabel">🖐️ Rules of Rock-Paper-Scissors-Lizard-Spock</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-secondary">
+          <p class="text-light">Created by Sam Kass and Karen Bryla, and popularized on <em>The Big Bang Theory</em>:</p>
+          <ul class="list-unstyled d-flex flex-column gap-2">
+            <li class="p-2 rounded bg-dark border border-secondary border-opacity-25">
+              ✂️ <strong>Scissors</strong> cuts 📄 <strong>Paper</strong> & decapitates 🦎 <strong>Lizard</strong>
+            </li>
+            <li class="p-2 rounded bg-dark border border-secondary border-opacity-25">
+              📄 <strong>Paper</strong> covers 🪨 <strong>Rock</strong> & disproves 🖖 <strong>Spock</strong>
+            </li>
+            <li class="p-2 rounded bg-dark border border-secondary border-opacity-25">
+              🪨 <strong>Rock</strong> crushes 🦎 <strong>Lizard</strong> & crushes ✂️ <strong>Scissors</strong>
+            </li>
+            <li class="p-2 rounded bg-dark border border-secondary border-opacity-25">
+              🦎 <strong>Lizard</strong> poisons 🖖 <strong>Spock</strong> & eats 📄 <strong>Paper</strong>
+            </li>
+            <li class="p-2 rounded bg-dark border border-secondary border-opacity-25">
+              🖖 <strong>Spock</strong> smashes ✂️ <strong>Scissors</strong> & vaporizes 🪨 <strong>Rock</strong>
+            </li>
+          </ul>
+        </div>
+        <div class="modal-footer border-secondary border-opacity-25">
+          <button type="button" class="btn btn-primary rounded-pill px-4" data-bs-dismiss="modal">Got It!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header border-secondary border-opacity-25 bg-dark text-white">
+        <strong id="toastTitle" class="me-auto">Notification</strong>
+        <small id="toastTime">Just now</small>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div id="toastBody" class="toast-body">
+        Message
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <script src="audio.js"></script>
+  <script src="game.js"></script>
+  <script src="webcam.js"></script>
+  <script src="rps-dataset.js"></script>
+  <script src="index.js"></script>
+</body>
 </html>

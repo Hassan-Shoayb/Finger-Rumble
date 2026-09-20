@@ -1,113 +1,145 @@
-// Copyright 2019 The TensorFlow Authors. All Rights Reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// =============================================================================
-
 /**
- * A class that wraps webcam video elements to capture Tensor4Ds.
+ * Modern Webcam Wrapper for TensorFlow.js
+ * Captures, mirrors, center-crops, and normalizes video frames as 4D tensors.
  */
-
 
 class Webcam {
   /**
-   * @param {HTMLVideoElement} webcamElement A HTMLVideoElement representing the
-   *     webcam feed.
+   * @param {HTMLVideoElement} webcamElement HTML5 video element representing the webcam feed.
    */
   constructor(webcamElement) {
     this.webcamElement = webcamElement;
+    this.stream = null;
   }
 
   /**
-   * Captures a frame from the webcam and normalizes it between -1 and 1.
-   * Returns a batched image (1-element batch) of shape [1, w, h, c].
+   * Captures a frame from the webcam and normalizes pixel values to [-1, 1].
+   * Returns a batched image tensor of shape [1, 224, 224, 3].
+   * @returns {tf.Tensor4D}
    */
-
-
   capture() {
     return tf.tidy(() => {
-      // Reads the image as a Tensor from the webcam <video> element.
+      // Reads the image as a Tensor from the webcam <video> element
       const webcamImage = tf.browser.fromPixels(this.webcamElement);
 
+      // Flip horizontally (mirror effect for natural user interaction)
       const reversedImage = webcamImage.reverse(1);
 
-      // Crop the image so we're using the center square of the rectangular
-      // webcam.
+      // Crop to center square
       const croppedImage = this.cropImage(reversedImage);
 
-      // Expand the outer most dimension so we have a batch size of 1.
-      const batchedImage = croppedImage.expandDims(0);
+      // Resize tensor to exact 224x224 expected by MobileNet
+      const resizedImage = tf.image.resizeBilinear(croppedImage, [224, 224]);
 
-      // Normalize the image between -1 and 1. The image comes in between 0-255,
-      // so we divide by 127 and subtract 1.
-      return batchedImage.toFloat().div(tf.scalar(127)).sub(tf.scalar(1));
+      // Expand dimension to batch size 1: [1, 224, 224, 3]
+      const batchedImage = resizedImage.expandDims(0);
+
+      // Normalize between -1 and 1: (pixel / 127.5) - 1.0
+      return batchedImage.toFloat().div(tf.scalar(127.5)).sub(tf.scalar(1));
     });
   }
 
   /**
-   * Crops an image tensor so we get a square image with no white space.
-   * @param {Tensor4D} img An input image Tensor to crop.
+   * Center crops an image tensor to a square.
+   * @param {tf.Tensor3D} img Input image Tensor to crop.
+   * @returns {tf.Tensor3D}
    */
-
-
   cropImage(img) {
-    const size = Math.min(img.shape[0], img.shape[1]);
-    const centerHeight = img.shape[0] / 2;
-    const beginHeight = centerHeight - (size / 2);
-    const centerWidth = img.shape[1] / 2;
-    const beginWidth = centerWidth - (size / 2);
+    const height = img.shape[0];
+    const width = img.shape[1];
+    const size = Math.min(height, width);
+    const beginHeight = Math.floor((height - size) / 2);
+    const beginWidth = Math.floor((width - size) / 2);
     return img.slice([beginHeight, beginWidth, 0], [size, size, 3]);
   }
 
   /**
-   * Adjusts the video size so we can make a centered square crop without
-   * including whitespace.
-   * @param {number} width The real width of the video element.
-   * @param {number} height The real height of the video element.
+   * Adjusts the video aspect ratio smoothly.
+   * @param {number} width
+   * @param {number} height
    */
-
-
   adjustVideoSize(width, height) {
     const aspectRatio = width / height;
     if (width >= height) {
       this.webcamElement.width = aspectRatio * this.webcamElement.height;
-    } else if (width < height) {
+    } else {
       this.webcamElement.height = this.webcamElement.width / aspectRatio;
     }
   }
 
+  /**
+   * Initializes the webcam stream using the modern MediaDevices API.
+   * @returns {Promise<void>}
+   */
   async setup() {
-    return new Promise((resolve, reject) => {
-      navigator.getUserMedia = navigator.getUserMedia ||
-          navigator.webkitGetUserMedia || navigator.mozGetUserMedia ||
-          navigator.msGetUserMedia;
-      if (navigator.getUserMedia) {
-        navigator.getUserMedia(
-            {video: {width: 224, height: 224}},
-            stream => {
-              this.webcamElement.srcObject = stream;
-              this.webcamElement.addEventListener('loadeddata', async () => {
-                this.adjustVideoSize(
-                    this.webcamElement.videoWidth,
-                    this.webcamElement.videoHeight);
-                resolve();
-              }, false);
-            },
-            error => {
-              reject(error);
-            });
-      } else {
-        reject();
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      // Fallback for older legacy browsers if present
+      const legacyGetUserMedia = navigator.getUserMedia ||
+        navigator.webkitGetUserMedia ||
+        navigator.mozGetUserMedia ||
+        navigator.msGetUserMedia;
+
+      if (!legacyGetUserMedia) {
+        throw new Error('Webcam API is not supported in this browser. Please use Chrome, Firefox, Safari, or Edge over HTTPS or localhost.');
       }
-    });
+
+      return new Promise((resolve, reject) => {
+        legacyGetUserMedia.call(
+          navigator,
+          { video: { width: 224, height: 224 } },
+          stream => {
+            this.stream = stream;
+            this.webcamElement.srcObject = stream;
+            this.webcamElement.addEventListener('loadeddata', () => {
+              this.adjustVideoSize(this.webcamElement.videoWidth, this.webcamElement.videoHeight);
+              resolve();
+            }, { once: true });
+          },
+          reject
+        );
+      });
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 480 },
+          height: { ideal: 480 },
+          facingMode: 'user'
+        },
+        audio: false
+      });
+
+      this.stream = stream;
+      this.webcamElement.srcObject = stream;
+
+      return new Promise((resolve) => {
+        this.webcamElement.addEventListener('loadeddata', () => {
+          this.adjustVideoSize(this.webcamElement.videoWidth, this.webcamElement.videoHeight);
+          resolve();
+        }, { once: true });
+      });
+    } catch (err) {
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        throw new Error('Webcam access was denied. Please allow camera permissions in your browser address bar.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        throw new Error('No webcam device was found on this system. Please connect a camera.');
+      } else {
+        throw new Error(`Unable to initialize webcam: ${err.message}`);
+      }
+    }
+  }
+
+  /**
+   * Stops active camera stream tracks.
+   */
+  stop() {
+    if (this.stream) {
+      this.stream.getTracks().forEach(track => track.stop());
+      this.stream = null;
+    }
+    if (this.webcamElement) {
+      this.webcamElement.srcObject = null;
+    }
   }
 }

@@ -1,57 +1,103 @@
-# Finger Rumble
+# 🖐️⚡ Finger Rumble (v2.0)
 
-![Finger-Rumble](https://socialify.git.ci/Hassan-Shoayb/Finger-Rumble/image?description=1&descriptionEditable=Utilizes%20TensorFlow.js%20and%20transfer%20learning%20to%20accurately%20recognize%20and%20classify%20hand%20gestures%20in%20real-time%20using%20your%20webcam.&font=Inter&forks=1&language=1&name=1&owner=1&pattern=Floating%20Cogs&pulls=1&stargazers=1&theme=Light)
+[![TensorFlow.js](https://img.shields.io/badge/TensorFlow.js-4.20.0-FF6F00?logo=tensorflow&logoColor=white)](https://js.tensorflow.org/)
+[![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3.3-7952B3?logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-Finger Rumble is an interactive web application that utilizes the power of deep learning and transfer learning techniques using TensorFlow.js to detect and classify hand gestures captured through the user's webcam. This allows for a hands-free and immersive gameplay experience.
+**Finger Rumble** is a real-time, browser-based hand gesture combat game powered by **TensorFlow.js** and **Transfer Learning**. Train a neural network directly on your webcam feed and face off against the Computer AI in **Rock, Paper, Scissors, Lizard, Spock**!
 
-[live Demo](https://finger-rumble.netlify.app/)
+Everything runs **100% client-side** in your browser using hardware-accelerated WebGL—no server, external Python environment, or data collection backend required.
 
-# How to Play
-1. Visit the Finger Rumble website [here](https://finger-rumble.netlify.app/) to access the web app.
+---
 
-2. Allow access to your webcam when prompted to enable gesture detection.
+## 🚀 Key Features
 
-3. Place your hand in front of the webcam, making sure it's clearly visible.
+- 🧠 **In-Browser Transfer Learning**: Uses a pre-trained **MobileNet v1** convolutional feature extractor truncated at layer `conv_pw_13_relu` and attaches a custom trainable classification head.
+- ⚔️ **Interactive Battle Arena**: Face off against the Computer AI in real time! Includes 3-2-1 audio/visual countdowns, automated winner resolution, streak counters, and match modes (*Endless*, *Best of 3*, *Best of 5*).
+- 📊 **Real-Time Confidence Meters**: View multi-class probability distributions across all 5 gestures simultaneously in the live detector tab.
+- ⏱️ **Hold-to-Sample Recording**: Click or hold down gesture buttons for continuous multi-frame sampling.
+- 🔊 **Zero-Dependency Web Audio Effects**: Dynamic countdown ticks, victory fanfares, and audio feedback synthesized via the HTML5 Web Audio API with a one-click mute toggle.
+- 💾 **Model Persistence**: Save and restore your trained models instantly using browser `IndexedDB`, or export model topology and weights (`model.json` + binary weights) to disk.
+- 🎨 **Modern Dark Theme**: Sleek, glassmorphic UI with hand-positioning reticles, real-time status badges, and responsive layout.
 
-4. Then make the gesture for rock while clicking on the 'rock' button to add the rock image samples into memory.
+---
 
-5. Collect at least 50 rock samples, and then do thesame for Paper, Scissors, Spock and Lizard.
+## 📜 The Rules: Rock, Paper, Scissors, Lizard, Spock
 
-6. After You've collected your image samples, click on the 'train network' button to train the model of your samples.
+Created by Sam Kass and Karen Bryla, and popularized on *The Big Bang Theory*:
 
-7. Once training is complete, click 'Start Predicting' to see predictions, and 'Stop Predicting' to end. 
+- ✂️ **Scissors** cuts 📄 **Paper** & decapitates 🦎 **Lizard**
+- 📄 **Paper** covers 🪨 **Rock** & disproves 🖖 **Spock**
+- 🪨 **Rock** crushes 🦎 **Lizard** & crushes ✂️ **Scissors**
+- 🦎 **Lizard** poisons 🖖 **Spock** & eats 📄 **Paper**
+- 🖖 **Spock** smashes ✂️ **Scissors** & vaporizes 🪨 **Rock**
 
-8. The app will use its deep learning model to detect and classify your hand gesture as Rock, Paper, Scissors, Spock, or Lizard.
+---
 
-9. Finally, once you are happy with your model, click 'Download Model' to save the model to your local disk.
+## 🎮 How to Play
 
-<img src="Finger-Rumble.gif" alt="A cool animated GIF">
+1. **Allow Camera Access**: When prompted by your browser, grant webcam access.
+2. **Collect Gesture Samples** (*Tab 1: Train & Calibrate*):
+   - Position your hand inside the webcam targeting guide.
+   - Form the hand gesture for **Rock** (🪨) and hold the sample button until you reach at least 30 samples.
+   - Repeat for **Paper** (📄), **Scissors** (✂️), **Spock** (🖖), and **Lizard** (🦎).
+3. **Train the Network**:
+   - Click **Train Network**. The app will train for 10 epochs with real-time loss and accuracy indicators.
+4. **Test in the Live Detector** (*Tab 2: Live Detector*):
+   - Click **Start Predicting** to test the model's confidence and responsiveness in real time.
+5. **Fight in the Battle Arena** (*Tab 3: Battle Arena*):
+   - Select your mode (*Endless*, *Best of 3*, or *Best of 5*).
+   - Click **FIGHT!** (or hit the `Spacebar`).
+   - Hold your gesture steady during the 3-2-1 countdown, throw your hand on "SHOOT!", and see who wins!
 
+---
 
-# Installation
-To run Finger Rumble locally, follow these steps:
-1. Clone this repository to your local machine using the following command:
+## 🛠️ Architecture & Tech Stack
+
 ```
-https://github.com/Hassan-Shoayb/Finger-Rumble.git
+Webcam Frame (224x224x3)
+       │
+       ▼
+[Webcam.capture()] ── Mirroring, center-cropping, and [-1, 1] normalization
+       │
+       ▼
+[MobileNet v1 (conv_pw_13_relu)] ── Pre-trained feature extractor
+       │
+       ▼ (Feature Embedding)
+[Custom Sequential Classifier] ── Flatten → Dense(100, ReLU) → Dropout(0.2) → Dense(5, Softmax)
+       │
+       ▼
+Predictions & Probabilities: [Rock, Paper, Scissors, Spock, Lizard]
 ```
 
-3. Navigate to the project directory:
-   ```
-   cd Finger-Rumble
-   ```
+- **Frontend**: HTML5, CSS3, JavaScript (ES6+), Bootstrap 5.3, Bootstrap Icons
+- **Machine Learning**: [TensorFlow.js](https://js.tensorflow.org/) (WebGL backend), `@tensorflow/tfjs-vis`
+- **Audio Engine**: Web Audio API Synthesizer (built-in, zero external media dependencies)
+- **Persistence**: IndexedDB + File Downloads
 
-5. Start the local development server and Open your web browser and visit the port to play Finger Rumble.
+---
 
-That's it! You're now ready to play Finger Rumble on your local machine.
+## 💻 Local Development & Setup
 
-# Technologies Used
-Finger Rumble is built using the following technologies:
+Since modern web browsers restrict webcam access and cross-origin resource sharing on the `file://` protocol, run the project with any local HTTP server:
 
-1. TensorFlow.js
-2. JavaScript
-3. HTML
-4. CSS
-5. Netlify (for deployment)
+```bash
+# 1. Clone the repository
+git clone https://github.com/Hassan-Shoayb/Finger-Rumble.git
+cd Finger-Rumble
 
-# Contributing
-Contributions to Finger Rumble are welcome and encouraged! If you have any ideas for improvements, new features, or bug fixes, please submit an issue or create a pull request. Make sure to follow the code of conduct when contributing to this project.
+# 2. Start a local server:
+# Using Python 3:
+python3 -m http.server 8000
+
+# Or using Node.js:
+npx serve .
+```
+
+Open your browser at `http://localhost:8000`.
+
+---
+
+## 🤝 Contributing
+
+Contributions, bug reports, and suggestions are welcome! Feel free to open an issue or submit a pull request.
