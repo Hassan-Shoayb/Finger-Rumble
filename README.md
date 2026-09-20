@@ -2,7 +2,10 @@
 
 [![TensorFlow.js](https://img.shields.io/badge/TensorFlow.js-4.20.0-FF6F00?logo=tensorflow&logoColor=white)](https://js.tensorflow.org/)
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3.3-7952B3?logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Netlify-00C7B7?logo=netlify&logoColor=white)](https://finger-rumble.netlify.app/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
+🌐 **Live Demo / Deployment**: [https://finger-rumble.netlify.app/](https://finger-rumble.netlify.app/)
 
 **Finger Rumble** is a real-time, browser-based hand gesture combat game powered by **TensorFlow.js** and **Transfer Learning**. Train a neural network directly on your webcam feed and face off against the Computer AI in **Rock, Paper, Scissors, Lizard, Spock**!
 
