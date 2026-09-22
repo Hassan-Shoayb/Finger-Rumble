@@ -56,6 +56,11 @@ const dom = {
   cpuScoreDisplay: document.getElementById('cpuScoreDisplay'),
   currentStreakDisplay: document.getElementById('currentStreakDisplay'),
   bestStreakDisplay: document.getElementById('bestStreakDisplay'),
+  totalRoundsDisplay: document.getElementById('totalRoundsDisplay'),
+  winRateDisplay: document.getElementById('winRateDisplay'),
+  favoriteMoveDisplay: document.getElementById('favoriteMoveDisplay'),
+  battleLogContainer: document.getElementById('battleLogContainer'),
+  btnClearBattleLog: document.getElementById('btnClearBattleLog'),
 
   // Training
   btnTrain: document.getElementById('btnTrain'),
@@ -245,8 +250,71 @@ async function runBattleRound() {
     );
   }
 
+  // Update Combat Log & Match Analytics
+  renderBattleLog();
+
   isBattleActive = false;
   dom.btnFight.disabled = outcome.isMatchOver;
+}
+
+/**
+ * Renders the Battle Combat Log and updates real-time session analytics
+ */
+function renderBattleLog() {
+  const history = battle.history;
+  const total = history.length;
+  if (dom.totalRoundsDisplay) dom.totalRoundsDisplay.innerText = total;
+
+  const winRate = battle.getWinRate();
+  if (dom.winRateDisplay) dom.winRateDisplay.innerText = `${winRate}%`;
+
+  const fav = battle.getFavoriteMove();
+  if (dom.favoriteMoveDisplay) {
+    dom.favoriteMoveDisplay.innerText = fav ? `${fav.emoji} ${fav.name}` : '--';
+  }
+
+  if (!dom.battleLogContainer) return;
+
+  if (total === 0) {
+    dom.battleLogContainer.innerHTML = `
+      <div id="battleLogEmptyState" class="text-center text-secondary small py-3">
+        <i class="bi bi-shield-slash d-block fs-3 mb-1 opacity-50"></i>
+        No rounds recorded yet. Click FIGHT! to start combat.
+      </div>
+    `;
+    return;
+  }
+
+  dom.battleLogContainer.innerHTML = '';
+  history.forEach(round => {
+    const item = document.createElement('div');
+    item.className = 'combat-log-item';
+
+    let badgeClass = 'combat-badge-draw';
+    let badgeText = 'DRAW';
+    if (round.result === 'win') {
+      badgeClass = 'combat-badge-win';
+      badgeText = 'VICTORY';
+    } else if (round.result === 'loss') {
+      badgeClass = 'combat-badge-loss';
+      badgeText = 'DEFEAT';
+    }
+
+    item.innerHTML = `
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-secondary bg-opacity-50 text-light fw-bold" style="font-size: 0.7rem;">R${round.round}</span>
+        <span class="${badgeClass}">${badgeText}</span>
+        <span class="text-white small fw-semibold">
+          You ${round.playerGesture.emoji} vs ${round.cpuGesture.emoji} CPU
+        </span>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="text-secondary small d-none d-sm-inline" style="font-size: 0.75rem;">${round.narrative}</span>
+        <span class="badge bg-dark border border-secondary text-info fw-bold" style="font-size: 0.72rem;">${round.playerScore} - ${round.cpuScore}</span>
+      </div>
+    `;
+    dom.battleLogContainer.appendChild(item);
+  });
 }
 
 /**
@@ -300,8 +368,18 @@ function setupEventListeners() {
     dom.cpuGestureName.innerText = 'Thinking...';
     dom.battleResultNarrative.innerText = 'Match reset. Click FIGHT to play!';
     dom.btnFight.disabled = false;
+    renderBattleLog();
     showToast('Score Reset', 'Match score has been reset.');
   });
+
+  // Clear Battle Combat Log button
+  if (dom.btnClearBattleLog) {
+    dom.btnClearBattleLog.addEventListener('click', () => {
+      battle.clearHistory();
+      renderBattleLog();
+      showToast('Log Cleared', 'Combat history log has been cleared.');
+    });
+  }
 
   // Match Mode Radios
   document.querySelectorAll('input[name="matchMode"]').forEach(radio => {

@@ -143,6 +143,34 @@ export class BattleEngine {
     return outcome;
   }
 
+  getWinRate() {
+    if (this.history.length === 0) return 0;
+    const wins = this.history.filter(h => h.result === 'win').length;
+    return Math.round((wins / this.history.length) * 100);
+  }
+
+  getFavoriteMove() {
+    if (this.history.length === 0) return null;
+    const counts = {};
+    for (const h of this.history) {
+      const id = h.playerGesture.id;
+      counts[id] = (counts[id] || 0) + 1;
+    }
+    let maxId = null;
+    let maxCount = -1;
+    for (const [id, count] of Object.entries(counts)) {
+      if (count > maxCount) {
+        maxCount = count;
+        maxId = parseInt(id, 10);
+      }
+    }
+    return maxId !== null ? GESTURES[maxId] : null;
+  }
+
+  clearHistory() {
+    this.history = [];
+  }
+
   resetMatch() {
     this.playerScore = 0;
     this.cpuScore = 0;

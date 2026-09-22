@@ -207,6 +207,61 @@
       border: 1px solid var(--card-border);
       color: #fff;
     }
+
+    /* Combat Log Styles */
+    .combat-log-item {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 9px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      animation: slideInDown 0.25s ease-out;
+      transition: all 0.2s ease;
+    }
+    .combat-log-item:hover {
+      background: rgba(30, 41, 59, 0.8);
+      border-color: rgba(0, 242, 254, 0.3);
+    }
+    .combat-badge-win {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.5);
+      color: #34d399;
+      font-weight: 700;
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .combat-badge-loss {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #f87171;
+      font-weight: 700;
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .combat-badge-draw {
+      background: rgba(234, 179, 8, 0.15);
+      border: 1px solid rgba(234, 179, 8, 0.5);
+      color: #facc15;
+      font-weight: 700;
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    @keyframes slideInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
   </style>
 </head>
 <body>
@@ -406,6 +461,46 @@
                   <button id="btnResetMatch" class="btn btn-outline-secondary" title="Reset match scores">
                     <i class="bi bi-arrow-counterclockwise"></i> Reset Score
                   </button>
+                </div>
+              </div>
+
+              <!-- Match Analytics Mini-Bar -->
+              <div class="row g-2 mt-3 text-center">
+                <div class="col-4">
+                  <div class="p-2 rounded bg-dark border border-secondary border-opacity-25">
+                    <div class="small text-secondary fw-semibold" style="font-size: 0.72rem;">TOTAL ROUNDS</div>
+                    <div id="totalRoundsDisplay" class="fs-5 fw-bold text-white">0</div>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="p-2 rounded bg-dark border border-secondary border-opacity-25">
+                    <div class="small text-secondary fw-semibold" style="font-size: 0.72rem;">WIN RATE</div>
+                    <div id="winRateDisplay" class="fs-5 fw-bold text-success">0%</div>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="p-2 rounded bg-dark border border-secondary border-opacity-25">
+                    <div class="small text-secondary fw-semibold" style="font-size: 0.72rem;">FAVORITE MOVE</div>
+                    <div id="favoriteMoveDisplay" class="fs-5 fw-bold text-warning">--</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Live Combat Feed / History Log -->
+              <div class="mt-3 p-3 rounded-3 bg-dark border border-secondary border-opacity-25">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="small fw-bold text-light d-flex align-items-center gap-2">
+                    <i class="bi bi-clock-history text-info"></i> Combat History Log
+                  </span>
+                  <button id="btnClearBattleLog" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 0.75rem;" title="Clear battle log">
+                    <i class="bi bi-trash3 me-1"></i> Clear Log
+                  </button>
+                </div>
+                <div id="battleLogContainer" class="d-flex flex-column gap-2" style="max-height: 220px; overflow-y: auto;">
+                  <div id="battleLogEmptyState" class="text-center text-secondary small py-3">
+                    <i class="bi bi-shield-slash d-block fs-3 mb-1 opacity-50"></i>
+                    No rounds recorded yet. Click FIGHT! to start combat.
+                  </div>
                 </div>
               </div>
             </div>
