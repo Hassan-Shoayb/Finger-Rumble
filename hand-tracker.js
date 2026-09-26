@@ -34,6 +34,7 @@ export class HandTracker {
     this.frameCount = 0;
     this.lastFpsUpdate = performance.now();
     this.onLandmarksCallback = null;
+    this.isMirrored = true;
   }
 
   async init() {
@@ -105,6 +106,18 @@ export class HandTracker {
       this.stream.getTracks().forEach(t => t.stop());
       this.stream = null;
     }
+  }
+
+  /**
+   * Toggles horizontal mirroring on both video and skeleton canvas
+   * @returns {boolean} New mirrored state
+   */
+  toggleMirror() {
+    this.isMirrored = !this.isMirrored;
+    const transformVal = this.isMirrored ? 'scaleX(-1)' : 'scaleX(1)';
+    this.video.style.transform = transformVal;
+    this.canvas.style.transform = transformVal;
+    return this.isMirrored;
   }
 
   renderLoop = () => {

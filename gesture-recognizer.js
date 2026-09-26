@@ -14,6 +14,8 @@ export class GestureRecognizer {
       samples: [], // Array of { coords: number[63], label: number }
       counts: [0, 0, 0, 0, 0]
     };
+    this.smoothBuffer = [];
+    this.smoothBufferSize = 4;
   }
 
   setMode(mode) {
@@ -162,13 +164,59 @@ export class GestureRecognizer {
   }
 
   /**
-   * Universal prediction dispatching based on active mode
+   * Universal prediction dispatching based on active mode with temporal probability smoothing
    */
   async predict(landmarks, coords) {
-    if (this.mode === 'custom' && this.customModel && coords) {
-      return await this.classifyNeural(coords);
+    if (!landmarks) {
+      this.smoothBuffer = [];
+      return null;
     }
-    return this.classifyGeometric(landmarks);
+
+    let rawPred = null;
+    if (this.mode === 'custom' && this.customModel && coords) {
+      rawPred = await this.classifyNeural(coords);
+    } else {
+      rawPred = this.classifyGeometric(landmarks);
+    }
+
+    if (!rawPred) {
+      this.smoothBuffer = [];
+      return null;
+    }
+
+    // Apply moving average smoothing to probabilities to eliminate frame jitter
+    this.smoothBuffer.push(rawPred.probabilities);
+    if (this.smoothBuffer.length > this.smoothBufferSize) {
+      this.smoothBuffer.shift();
+    }
+
+    const smoothedProbs = [0, 0, 0, 0, 0];
+    for (const probs of this.smoothBuffer) {
+      for (let i = 0; i < 5; i++) {
+        smoothedProbs[i] += probs[i];
+      }
+    }
+    const len = this.smoothBuffer.length;
+    for (let i = 0; i < 5; i++) {
+      smoothedProbs[i] /= len;
+    }
+
+    // Select class with highest smoothed probability
+    let bestClass = 0;
+    let maxProb = -1;
+    smoothedProbs.forEach((p, idx) => {
+      if (p > maxProb) {
+        maxProb = p;
+        bestClass = idx;
+      }
+    });
+
+    return {
+      classId: bestClass,
+      confidence: maxProb,
+      probabilities: smoothedProbs,
+      method: rawPred.method
+    };
   }
 
   // --- Custom Calibration Training Methods ---

@@ -24,6 +24,9 @@ Everything runs **100% client-side** using WebAssembly SIMD and GPU hardware acc
   - **Engine B (Landmark Neural Network)**: Calibrate personalized hand gestures and train a compact 63-coordinate MLP ($63 \to 32 \to 5$) in **under 1 second**!
 - ⚔️ **Interactive Battle Arena**: Face off against the Computer AI with 3-2-1 animated countdowns, dynamic round narratives, streak tracking, and match modes (*Endless*, *Best of 3*, *Best of 5*).
 - 📜 **Battle Combat Log & Live Analytics**: Real-time round history feed showing showdown moves, clash descriptions (*"Spock vaporizes Rock!"*), win/loss/draw badges, running scorecards, and live player stats (Total Rounds, Win Rate %, Favorite Move).
+- 🎉 **Victory Celebration Particles**: High-energy, zero-dependency canvas confetti and spark bursts celebrating winning rounds and match victories.
+- 🎯 **Temporal Prediction Smoothing**: Multi-frame moving average probability filter eliminating gesture jitter and delivering rock-solid detection.
+- 🔄 **Camera Mirror / Flip View Toggle**: One-click orientation toggle on the video HUD to switch between mirrored (selfie) and true video mode.
 - 📊 **Real-Time Probability Breakdown**: Live confidence meters show real-time model certainty across all 5 gestures simultaneously.
 - 🔊 **Zero-Dependency Web Audio Effects**: Synthesized countdown beeps, capture pulses, and victory fanfares generated via the Web Audio API with a persistent mute toggle.
 - 💾 **Model Persistence**: Automatically caches custom calibrated landmark models in browser `IndexedDB`.

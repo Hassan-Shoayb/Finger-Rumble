@@ -12,6 +12,7 @@ import { soundFx } from './audio.js';
 let tracker = null;
 let recognizer = null;
 let battle = null;
+let confetti = null;
 
 let latestLandmarks = null;
 let latestCoords = null;
@@ -20,6 +21,99 @@ let latestPrediction = null;
 let sampleTimer = null;
 let sampleInterval = null;
 let isBattleActive = false;
+
+/**
+ * Lightweight, zero-dependency celebration particle engine for victory moments
+ */
+class ParticleFX {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas ? canvas.getContext('2d') : null;
+    this.particles = [];
+    this.animationId = null;
+    if (this.canvas) {
+      this.resize();
+      window.addEventListener('resize', () => this.resize());
+    }
+  }
+
+  resize() {
+    if (!this.canvas) return;
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+  }
+
+  burst(x = window.innerWidth / 2, y = window.innerHeight / 2, count = 75) {
+    if (!this.ctx) return;
+    const colors = ['#00f2fe', '#ec4899', '#a855f7', '#fbbf24', '#10b981', '#ffffff'];
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 8 + 3;
+      this.particles.push({
+        x: x,
+        y: y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - Math.random() * 4,
+        gravity: 0.18,
+        rotation: Math.random() * 360,
+        rotSpeed: (Math.random() - 0.5) * 12,
+        size: Math.random() * 8 + 5,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        alpha: 1.0,
+        decay: Math.random() * 0.015 + 0.008,
+        shape: Math.random() > 0.4 ? 'rect' : 'circle'
+      });
+    }
+
+    if (!this.animationId) {
+      this.render();
+    }
+  }
+
+  render = () => {
+    if (!this.ctx) return;
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += p.gravity;
+      p.rotation += p.rotSpeed;
+      p.alpha -= p.decay;
+
+      if (p.alpha <= 0) {
+        this.particles.splice(i, 1);
+        continue;
+      }
+
+      this.ctx.save();
+      this.ctx.globalAlpha = p.alpha;
+      this.ctx.translate(p.x, p.y);
+      this.ctx.rotate((p.rotation * Math.PI) / 180);
+      this.ctx.fillStyle = p.color;
+      this.ctx.shadowColor = p.color;
+      this.ctx.shadowBlur = 6;
+
+      if (p.shape === 'rect') {
+        this.ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+      } else {
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+        this.ctx.fill();
+      }
+
+      this.ctx.restore();
+    }
+
+    if (this.particles.length > 0) {
+      this.animationId = requestAnimationFrame(this.render);
+    } else {
+      this.animationId = null;
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+  };
+}
 
 // DOM Elements
 const dom = {
@@ -71,6 +165,10 @@ const dom = {
   epochStatus: document.getElementById('epochStatus'),
   lossStatus: document.getElementById('lossStatus'),
 
+  // FX & Camera Controls
+  fxCanvas: document.getElementById('fxCanvas'),
+  btnToggleMirror: document.getElementById('btnToggleMirror'),
+
   // Toast
   toastElement: document.getElementById('liveToast'),
   toastTitle: document.getElementById('toastTitle'),
@@ -94,6 +192,11 @@ function showToast(title, message, isWarning = false) {
 async function init() {
   recognizer = new GestureRecognizer();
   battle = new BattleEngine();
+
+  // Initialize Confetti Particle Engine
+  if (dom.fxCanvas) {
+    confetti = new ParticleFX(dom.fxCanvas);
+  }
 
   // Check if custom landmark model is saved
   const hasCustomModel = await recognizer.tryLoadCustomModel();
@@ -233,6 +336,7 @@ async function runBattleRound() {
     soundFx.playWin();
     dom.playerArenaBox.style.borderColor = '#10b981';
     dom.cpuArenaBox.style.borderColor = '#ef4444';
+    if (confetti) confetti.burst(window.innerWidth / 2, window.innerHeight * 0.45, 75);
   } else if (outcome.result === 'loss') {
     soundFx.playLoss();
     dom.playerArenaBox.style.borderColor = '#ef4444';
@@ -248,6 +352,10 @@ async function runBattleRound() {
       '🏆 Match Concluded!',
       `<strong>${outcome.matchWinner} wins the match!</strong> Click Reset Score to play again.`
     );
+    if (outcome.matchWinner === 'Player' && confetti) {
+      confetti.burst(window.innerWidth * 0.35, window.innerHeight * 0.4, 90);
+      setTimeout(() => confetti.burst(window.innerWidth * 0.65, window.innerHeight * 0.4, 90), 220);
+    }
   }
 
   // Update Combat Log & Match Analytics
@@ -403,6 +511,16 @@ function setupEventListeners() {
     soundFx.toggleMute();
     updateSoundIcon();
   });
+
+  // Toggle Camera Mirror View
+  if (dom.btnToggleMirror) {
+    dom.btnToggleMirror.addEventListener('click', () => {
+      if (tracker) {
+        const isMirrored = tracker.toggleMirror();
+        showToast('Camera View', isMirrored ? 'Mirrored (Selfie) view enabled.' : 'True (Unmirrored) view enabled.');
+      }
+    });
+  }
 
   // Mode Switch (Geometric vs Custom Neural)
   dom.modeSwitch.addEventListener('change', (e) => {
